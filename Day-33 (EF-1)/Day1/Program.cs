@@ -35,9 +35,22 @@ namespace Day1 {
       // performansce leak 
       // Where here will be executed at client side (visual studio)
 
-      foreach (var dept in query) {
-        Console.WriteLine(dept.Name);
+      //foreach (var dept in query) {
+      //  Console.WriteLine(dept.Name);
+      //}
+
+      // --------------------Day-2--------------------
+      // Navigation properties
+      // - group of properties that link classes to each other 
+
+      //var dept_1 = context.Departments.First();
+      var dept_1 = context.Departments.Find(3);
+
+
+      foreach (var emp in dept_1.Employees) {
+        Console.WriteLine(emp.Name);
       }
+
     }
   }
 }
