@@ -16,12 +16,9 @@ namespace Day1 {
       // - shows logs at the output
       // - in thyat case it shows the db query that will go to database
 
-      // Day-1
+      //-----------------------------Day-1-----------------------------
 
       #region EF in Action 
-
-      /*
-
       // query operator 
       var query = context.Departments.Where(c => c.ID == 2);
       // Where here is not the Where which was in LINQ
@@ -43,11 +40,11 @@ namespace Day1 {
       // performansce leak 
       // Where here will be executed at client side (visual studio)
 
-      //foreach (var dept in query) {
-      //  Console.WriteLine(dept.Name);
-      //}
+      foreach (var dept in query) {
+        Console.WriteLine(dept.Name);
+      }
 
-      // --------------------Day-2--------------------
+      // --------------------Day-2---------------------------------------------
       // Navigation properties
       // - group of properties that link classes to each other 
 
@@ -59,22 +56,20 @@ namespace Day1 {
         Console.WriteLine(emp.Name);
       }
 
-      */
-
       #endregion
 
       Console.WriteLine("---------------------------------------------");
 
       // how to perform update, insert and delete 
       #region update
-      /
+      
 
       // update
       var dept_2 = context.Departments.First();
       dept_2.Name = "Intake 42";
       context.SaveChanges();
       
-      /*
+      
       
       #endregion
 
@@ -90,14 +85,14 @@ namespace Day1 {
       // means any change will affect the data in mem only  
       #endregion
 
-      /*  diff between Find and Single 
+      // diff between Find and Single 
       var dept = context.Departments.Find(3);
       var dept = context.Departments.Single(d => d.ID == 3);
-      */
+      
 
       #region insert
 
-      /*
+      
       var dept_4 = new Department { Name = "INT 46" };
       dept_4.Employees = new List<Employee> {
         new Employee {Name = "A1", BirthDate = DateTime.Now}
@@ -106,11 +101,9 @@ namespace Day1 {
       // after Add(), the state of entry will be "Added"
       // context will find that there are 2 objects of Employees also added so it will be added  
       context.SaveChanges();
-      */
+      
 
       // Another way
-      
-      /*
       var dept_5 = new Department { Name = "askjdhg" };
 
       var emp = new Employee {
@@ -121,18 +114,13 @@ namespace Day1 {
 
       context.Employees.Add(emp);
       context.SaveChanges();
-      */
-      
       #endregion
 
       #region delete
       var dept_6 = context.Departments.Find(60);
       //context.Departments.Remove(dept_6);
       //context.SaveChanges();
-
       #endregion
-
-
     }
   }
 }
