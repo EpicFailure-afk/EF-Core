@@ -64,9 +64,23 @@
     <Compile Include="Migrations\202609231903282_updates.Designer.cs">
       <DependentUpon>202609231903282_updates.cs</DependentUpon>
     </Compile>
+    <Compile Include="Migrations\202609241633278_updates2.cs" />
+    <Compile Include="Migrations\202609241633278_updates2.Designer.cs">
+      <DependentUpon>202609241633278_updates2.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202609241741448_updates3.cs" />
+    <Compile Include="Migrations\202609241741448_updates3.Designer.cs">
+      <DependentUpon>202609241741448_updates3.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202609241816127_updates4.cs" />
+    <Compile Include="Migrations\202609241816127_updates4.Designer.cs">
+      <DependentUpon>202609241816127_updates4.cs</DependentUpon>
+    </Compile>
     <Compile Include="Migrations\Configuration.cs" />
     <Compile Include="Program.cs" />
+    <Compile Include="Project.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="WorksFor.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
@@ -78,6 +92,15 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Migrations\202609231903282_updates.resx">
       <DependentUpon>202609231903282_updates.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202609241633278_updates2.resx">
+      <DependentUpon>202609241633278_updates2.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202609241741448_updates3.resx">
+      <DependentUpon>202609241741448_updates3.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202609241816127_updates4.resx">
+      <DependentUpon>202609241816127_updates4.cs</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
