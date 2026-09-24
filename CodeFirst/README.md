@@ -250,7 +250,7 @@ namespace CodeFirst {
 also add a nav-prop `ICollection<WorksFor> WorksFors` in each class **Employee** and **Project**
 
 
-> [!INFO]
+> [!NOTE]
 > Updates on Database Done Successfully through **migaration (updates(2, 3 and 4)) For Day-5**
 
 
