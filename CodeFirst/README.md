@@ -127,3 +127,130 @@ public string Address { get; set; }
       context.SaveChanges();
 ```
 
+
+--- 
+---
+
+# Day-5
+# How to change the default rules 
+<br>
+
+## Data Annotation 
+Group of Attributes  
+Change columns names, Tables and their datatype
+
+- Change Table Name **on namespace level**
+
+```cs
+namespace CodeFirst {
+  // Data Annotation 
+  [Table("Department", Schema ="HR")]
+  internal class Department {
+    public int ID { get; set; }
+    public string Name { get; set; }
+  }
+}
+```
+
+<br>
+
+- change attributes at Table:
+
+```cs
+namespace CodeFirst {
+  internal class Employee {
+    [Key]
+    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+    public int ID { get; set; }
+    
+    [Column("FullName")]
+    [Required, MaxLength(100)]
+    public string Name { get; set; }
+    public double Salary { get; set; }
+    public string Address { get; set; }
+
+    [Column(TypeName = "Date")]
+    public DateTime Birthdate { get; set; }
+  }
+}
+```
+
+Salary is int, by default it's Not Null
+  - to make it nullable --> public double**?** Salary { get; set; }
+
+> [!NOTE]
+> You can Edit migration code but without changing the structure 
+
+
+---
+
+## Linking 
+--> Through **Navigation Properties**
+
+<br>
+
+the best is to add navigation prop at each class
+
+Example: add a relation between Employee and Department 
+
+- Employee.cs:
+
+```cs
+   public virtual Department Dept { set; get; }
+```
+
+
+- Department.cs 
+
+```cs
+  public virtual ICollection<Employee> Employees { get; set;}
+```
+
+**Naming** of the foreign key by default is `class_ID`
+
+<br>
+
+to change the name of the foreign key:
+
+- Adding a new prop at Department `DepartmentID` then link this prop to the navigation prop
+   `public int DepartmentId { get; set; }`
+   link this prop to the navigation prop through 2 ways
+     - either on the prop or on the navigation prop
+       ```cs
+	       // add new prop to be a FK 
+			[ForeignKey("Dept")] 
+			public int DepartmentID { get; set; }
+			// Navigation props
+			[ForeignKey("DepartmentID")]
+			public virtual Department Dept { get; set; }
+       ```
+
+---
+
+If there a relation many-many between Project and Employee
+
+> best Solution is to create another class to link the other two classes
+
+**Class WorksFor**
+
+```cs
+namespace CodeFirst {
+  internal class WorksFor {
+    public int ID { get; set; }
+    public int Hours { get; set; }
+
+    //Nav-Prop
+    public virtual Employee Employee { get; set; }
+    public virtual Project Project { get; set; }
+
+  }
+}
+```
+
+also add a nav-prop `ICollection<WorksFor> WorksFors` in each class **Employee** and **Project**
+
+
+> [!INFO]
+> Updates on Database Done Successfully through **migaration (updates(2, 3 and 4)) For Day-5**
+
+
