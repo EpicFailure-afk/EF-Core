@@ -1,15 +1,22 @@
-# EF Core — Video 1 Study Notes
+# EF Core — Study Notes: Video 1 & Video 2
 
-A concept-first reference for the first EF Core video, following the order of my original notes and using the entities, configuration, queries, and migrations from my project.
+A concept-first reference for both EF Core videos, following the order of my original notes and using the entities, configuration, queries, and migrations from my project. Start with the problem, understand the idea, then read the code.
 
 **Repository:** [EpicFailure-afk/EF-Core](https://github.com/EpicFailure-afk/EF-Core)
 
-**Scope:** configuration, migrations, Fluent API, conventions, Data Annotations, one-to-many relationships, and the introduction to eager loading with `Include` and `ThenInclude`.
+**Video 1:** configuration, migrations, Fluent API, conventions, Data Annotations, relationships, and the introduction to eager loading.
+
+**Video 2:** loading tradeoffs, client/server evaluation, tracking and identity resolution, global query filters, shadow properties, and the self-referencing relationship exercise suggested at the end of the lecture.
 
 > **How to read these notes**
 > The main explanations come from my notes, the transcript, and the supplied local code. **Correction**, **Version note**, and **Extra clarification** identify additions that resolve an inaccurate statement or explain behavior beyond the demonstrated example. Microsoft documentation is linked beside those additions. The GitHub page could not be retrieved during preparation; code and migration details were checked against the supplied local repository.
 
 ## Contents
+
+- [Video 1 — Foundations](#video-1--foundations)
+- [Video 2 — Loading, Tracking, and Model Features](#video-2--loading-tracking-and-model-features)
+
+### Video 1 topics
 
 1. [Versions: EF6 and EF Core](#1-versions-ef6-and-ef-core)
 2. [How to configure EF Core](#2-how-to-configure-ef-core)
@@ -26,9 +33,32 @@ A concept-first reference for the first EF Core video, following the order of my
 13. [EF6 vs. EF Core comparison](#13-ef6-vs-ef-core-comparison)
 14. [Revision questions](#14-revision-questions)
 
+### Video 2 topics
+
+1. [Read the examples without mixing their roles](#v2-1-read-the-examples-without-mixing-their-roles)
+2. [Eager loading: single and split queries](#v2-2-eager-loading-single-and-split-queries)
+3. [Explicit loading](#v2-3-explicit-loading)
+4. [Select loading: projection](#v2-4-select-loading-projection)
+5. [Lazy loading](#v2-5-lazy-loading)
+6. [Client evaluation and server evaluation](#v2-6-client-evaluation-and-server-evaluation)
+7. [Using EF.Functions](#v2-7-using-effunctions)
+8. [Tracking and identity resolution](#v2-8-tracking-and-identity-resolution)
+9. [Global query filters](#v2-9-global-query-filters)
+10. [Shadow properties](#v2-10-shadow-properties)
+11. [Applying properties to all entities](#v2-11-applying-properties-to-all-entities)
+12. [Recursive relationships and relationship fixup](#v2-12-recursive-relationships-and-relationship-fixup)
+13. [What is currently active in my project?](#v2-13-what-is-currently-active-in-my-project)
+14. [Revision questions and decisions](#v2-14-revision-questions-and-decisions)
+
 ---
 
-## 1. Versions: EF6 and EF Core
+## Video 1 — Foundations
+
+This part describes the project as it stood at the end of the first video. References to the active printing loop and its query below refer to that version; Video 2 records the updated code separately.
+
+---
+
+### 1. Versions: EF6 and EF Core
 
 First, separate the runtime from the data-access library:
 
@@ -41,7 +71,7 @@ The video introduces the move from .NET Core 3.1 to the .NET 5 naming, then uses
 
 **EF Core is still called EF Core.** It does not become “EF6” when an application uses .NET 6.
 
-### Database providers
+#### Database providers
 
 A **provider** lets EF work with a particular database. This project uses SQL Server, so it uses the SQL Server provider. The lecture also mentions Oracle, SQLite, and the non-relational Azure Cosmos DB provider as examples of other choices.
 
@@ -51,9 +81,9 @@ The useful lesson is to identify both the EF library and the provider the applic
 
 ---
 
-## 2. How to configure EF Core
+### 2. How to configure EF Core
 
-### Packages
+#### Packages
 
 In the previous EF6 example, the main package was installed with:
 
@@ -79,7 +109,7 @@ dotnet add package Microsoft.EntityFrameworkCore.Tools --version 10.0.12
 
 > **Extra clarification:** Three direct package references are the setup used here, not a universal minimum for every EF Core application. The SQL Server provider brings core dependencies, and migration tooling is needed for development tasks. `Microsoft.EntityFrameworkCore.Tools` supplies the Visual Studio console commands; the `dotnet ef` tool has a separate setup. The migration examples below use Visual Studio's Package Manager Console. [Microsoft: Package Manager Console tools](https://learn.microsoft.com/en-us/ef/core/cli/powershell)
 
-### The context
+#### The context
 
 `Context` inherits from `DbContext` and provides the application's entry point for EF operations:
 
@@ -103,9 +133,9 @@ Two methods are central to this lesson:
 
 ---
 
-## 3. Defining the connection string
+### 3. Defining the connection string
 
-### `OnConfiguring`
+#### `OnConfiguring`
 
 Override the method inherited from `DbContext` and configure the SQL Server provider:
 
@@ -113,7 +143,8 @@ Override the method inherited from `DbContext` and configure the SQL Server prov
 protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 {
     optionsBuilder.UseSqlServer(
-        @"Data Source=localhost\SQLEXPRESS;Initial Catalog=Intake46Core;Integrated Security=True;TrustServerCertificate=True;");
+        @"Data Source=localhost\SQLEXPRESS;Initial Catalog=Intake46Core;
+        Integrated Security=True;TrustServerCertificate=True;");
 
     base.OnConfiguring(optionsBuilder);
 }
@@ -134,7 +165,7 @@ This uses the same settings as the supplied `Context.cs`, with spacing normalize
 using Microsoft.EntityFrameworkCore;
 ```
 
-### What is `DbContextOptionsBuilder`?
+#### What is `DbContextOptionsBuilder`?
 
 It is the object used to build the context's options. In this lesson, those options specify the provider and connection string.
 
@@ -142,7 +173,7 @@ The mentor connects this API to the **Builder pattern**: options are assembled t
 
 > **Extra clarification:** Overriding `OnConfiguring` is the approach used in this console application. It is not the only way to configure a context; externally supplied options are also possible. Those alternatives are outside this video's implementation.
 
-### Connection-string troubleshooting
+#### Connection-string troubleshooting
 
 The earlier project discussion encountered these two issues:
 
@@ -157,9 +188,9 @@ These are connection-setting changes. They do not change the entity model and do
 
 ---
 
-## 4. Migrations and the model snapshot
+### 4. Migrations and the model snapshot
 
-### What does a migration do?
+#### What does a migration do?
 
 A migration describes a change to the database schema. Its two methods have different directions:
 
@@ -170,7 +201,7 @@ A migration describes a change to the database schema. Its two methods have diff
 
 The supplied `init` migration creates `Attendance`, `Branch`, `Department`, and `Employees`. Later migrations add the remaining relationships and `Project`.
 
-### Model, snapshot, and history are different things
+#### Model, snapshot, and history are different things
 
 | Item | Location | Purpose |
 | --- | --- | --- |
@@ -198,7 +229,7 @@ Update-Database
 
 > **EF6 clarification:** EF6 also has model metadata in migration files and stores model information in its database history. Its change detection is not simply “compare current code directly with live database tables.” EF Core's separate snapshot file is the important distinction here. [Microsoft: EF6 migrations with an existing database](https://learn.microsoft.com/en-us/ef/ef6/modeling/code-first/migrations/existing-database)
 
-### Why use `Remove-Migration` instead of deleting a file?
+#### Why use `Remove-Migration` instead of deleting a file?
 
 `Add-Migration` updates the snapshot immediately, before `Update-Database`.
 
@@ -206,7 +237,7 @@ If a newly added property is already represented in the snapshot, deleting only 
 
 Use `Remove-Migration` to remove the latest migration and restore the preceding snapshot state. Removing the only remaining migration also removes the snapshot. It does **not** undo edits to the entity classes. [Microsoft: managing migrations](https://learn.microsoft.com/en-us/ef/core/managing-schemas/migrations/managing)
 
-### If the migration was already applied
+#### If the migration was already applied
 
 For the local learning database, roll back to the previous migration before removing the latest one:
 
@@ -217,7 +248,7 @@ Remove-Migration
 
 This example assumes the latest applied migration is `RelationEmpAttend`, immediately after `ProjectClassAndRelation`, as in the supplied files. Rollback executes the relevant `Down` operations, which can remove schema or data.
 
-### Existing database: why did the mentor empty `Up` and `Down`?
+#### Existing database: why did the mentor empty `Up` and `Down`?
 
 The lecture demonstrates a special case: the tables already exist, but the migration baseline needs to be recreated.
 
@@ -232,7 +263,7 @@ This explains the demonstration, not a general fix whenever a database exists. N
 
 ---
 
-## 5. Important commands till now
+### 5. Important commands till now
 
 Run these in **Visual Studio → Package Manager Console**, with the EF Core project selected as the default project and the appropriate startup project selected.
 
@@ -264,9 +295,9 @@ Edit model -> Save/build -> Add-Migration -> Review Up/Down -> Update-Database
 
 ---
 
-## 6. Fluent API
+### 6. Fluent API
 
-### How to use Fluent API
+#### How to use Fluent API
 
 Override `OnModelCreating` and use its `ModelBuilder` to configure the model:
 
@@ -307,7 +338,7 @@ This example is not configured in the supplied project. [Microsoft: entity prope
 
 ---
 
-## 7. Changing defaults and configuration by convention
+### 7. Changing defaults and configuration by convention
 
 There are three ways to describe the model:
 
@@ -319,7 +350,7 @@ There are three ways to describe the model:
 
 Convention means following a default rule. To replace a default mapping, use an annotation or Fluent API. When configurations conflict, Fluent API takes precedence over annotations, and annotations over conventions. [Microsoft: creating and configuring a model](https://learn.microsoft.com/en-us/ef/core/modeling/)
 
-### Primary-key and naming conventions
+#### Primary-key and naming conventions
 
 Properties named `ID` or the entity name followed by `ID`, such as `EmployeeID` on an `Employee`, can be recognized as primary keys. In this SQL Server project, the single integer `ID` keys are generated as identity columns. [Microsoft: keys](https://learn.microsoft.com/en-us/ef/core/modeling/keys)
 
@@ -335,7 +366,7 @@ The supplied snapshot confirms:
 | `Project` | `Project` | Entity name; no dedicated `DbSet` |
 | `Attendance` | `Attendance` | Entity name; no dedicated `DbSet` |
 
-### Foreign-key convention: Employee and Department
+#### Foreign-key convention: Employee and Department
 
 From `Employee.cs`:
 
@@ -354,7 +385,7 @@ The navigation properties describe the relationship. EF recognizes `DepartmentID
 
 > **Extra clarification:** An integer named `DepartmentID` alone does not describe the complete relationship. Relationships may be inferred from navigations or configured explicitly. If navigations establish a relationship without a CLR FK property, EF can use a shadow FK. EF6 also has relationship conventions; FK attributes were needed for the earlier example, not for every EF6 relationship. [Microsoft: relationship discovery conventions](https://learn.microsoft.com/en-us/ef/core/modeling/relationships/conventions)
 
-### Question: when do I use an object and when do I use `ICollection<T>`?
+#### Question: when do I use an object and when do I use `ICollection<T>`?
 
 Use a reference navigation when that entity points to **one** related entity. Use a collection navigation when it points to **many** related entities.
 
@@ -372,7 +403,7 @@ Declaring a navigation describes the model; it does not guarantee that related d
 
 ---
 
-## 8. Composite key
+### 8. Composite key
 
 `Attendance` contains:
 
@@ -408,15 +439,15 @@ table.PrimaryKey("PK_Attendance", x => new { x.EmployeeID, x.Date });
 
 > **Correction and version note:** In EF6, composite-key annotations require ordering as well as `[Key]`. Applying `[Key]` to multiple properties is not the EF Core solution. The video uses Fluent API, and so does this project. Modern EF Core also supports a class-level `[PrimaryKey(...)]` attribute, so “Fluent API is the only possible way” is not accurate for the supplied EF Core version. [Microsoft: keys](https://learn.microsoft.com/en-us/ef/core/modeling/keys)
 
-### Why does Attendance appear without a `DbSet`?
+#### Why does Attendance appear without a `DbSet`?
 
 `modelBuilder.Entity<Attendance>()` explicitly includes it in the model. Entity types can also be discovered through navigations, which is how `Project` is reached from `Department.Projects`. A separate `DbSet` is not required for every mapped entity. [Microsoft: entity types](https://learn.microsoft.com/en-us/ef/core/modeling/entity-types)
 
 ---
 
-## 9. Revision on Data Annotations
+### 9. Revision on Data Annotations
 
-### Attributes actually used in this project
+#### Attributes actually used in this project
 
 From `Branch.cs`:
 
@@ -443,11 +474,11 @@ internal class Branch
 
 The lecture also recalls maximum-length annotations and the earlier lesson's key/FK annotations. Those are revision topics, not additional attributes currently configured in these entity files.
 
-### Required mapping vs. validation
+#### Required mapping vs. validation
 
 > **Correction:** EF Core uses annotations to configure its model, but it does not automatically perform EF6-style entity validation during `SaveChanges`. Attributes can also be used by a separate validation system; this console application does not demonstrate one. A database constraint failure during a save can surface as `DbUpdateException` with a provider exception inside it. Do not assume `[Required]` alone provides a complete validation flow. [Microsoft: detailed EF6-to-EF-Core differences](https://learn.microsoft.com/ef/efcore-and-ef6/porting/port-detailed-cases)
 
-### Version note: nullable reference types
+#### Version note: nullable reference types
 
 The supplied `.csproj` enables:
 
@@ -459,7 +490,7 @@ With this setting, `string Name` is required by convention, while `string? Name`
 
 ---
 
-## 10. Rest of the relationships
+### 10. Rest of the relationships
 
 All four relationships in the completed example are one-to-many:
 
@@ -478,7 +509,7 @@ Branch
 | `Department` | `Project` | `Project.department` | `Department.Projects` | `Project.DepartmentID` |
 | `Employee` | `Attendance` | `Attendance.Employee` | `Employee.Attendances` | `Attendance.EmployeeID` |
 
-### Branch → Department
+#### Branch → Department
 
 ```csharp
 // Branch.cs
@@ -489,7 +520,7 @@ public int BranchID { get; set; }
 public Branch Branch { get; set; }
 ```
 
-### Department → Project
+#### Department → Project
 
 ```csharp
 // Department.cs
@@ -502,7 +533,7 @@ public Department department { get; set; }
 
 The lowercase `department` is preserved from the supplied code.
 
-### Employee → Attendance
+#### Employee → Attendance
 
 ```csharp
 // Employee.cs
@@ -519,15 +550,15 @@ The supplied snapshot confirms all four relationships, required FKs, and cascade
 
 ---
 
-## 11. What happens when the model and database differ?
+### 11. What happens when the model and database differ?
 
 Changing a C# entity does not automatically change the database. Likewise, manually changing a SQL table does not automatically update the C# entities or snapshot.
 
-### EF6
+#### EF6
 
 The familiar EF6 Code First workflow can throw an `InvalidOperationException` saying that the model backing the context has changed since the database was created. This occurs during database initialization/use when the relevant compatibility check runs, rather than necessarily at the application's first line. [Microsoft: EF6 Code First migrations](https://learn.microsoft.com/en-us/ef/ef6/modeling/code-first/migrations/)
 
-### EF Core
+#### EF Core
 
 As the lecture explains, ordinary EF Core querying does not provide that same blanket EF6-style startup check. A mismatch can become visible when SQL needs the missing or incompatible schema element.
 
@@ -548,9 +579,9 @@ The practical workflow is to update the model, generate and review a migration, 
 
 ---
 
-## 12. Lazy loading and loading related data
+### 12. Lazy loading and loading related data
 
-### Lazy loading is not enabled by default
+#### Lazy loading is not enabled by default
 
 The starting query in the supplied `Program.cs` is commented out:
 
@@ -581,13 +612,13 @@ In the lecture's fresh-context example, the uninitialized collection is `null`, 
 
 > **Extra clarification:** An unloaded collection is not guaranteed to be `null` in every application. It might be initialized or populated from entities already tracked by the context. An empty collection alone is not proof that a department has no employees in the database. Initializing the collection can prevent a null iteration but does not load its rows. [Microsoft: eager loading and navigation fix-up](https://learn.microsoft.com/en-us/ef/core/querying/related-data/eager)
 
-### Why does the lecture discuss performance here?
+#### Why does the lecture discuss performance here?
 
 The mentor uses UI data binding to explain hidden database access: a control may access navigation properties, which can trigger additional queries when lazy loading is enabled. Nested relationships can load much more data than the developer intended.
 
 Understand the loading decision before choosing the syntax: **which related data does this operation actually need?**
 
-### Four options mentioned in the transcript
+#### Four options mentioned in the transcript
 
 | Option | Basic idea | Coverage in this supplied video |
 | --- | --- | --- |
@@ -598,7 +629,7 @@ Understand the loading decision before choosing the syntax: **which related data
 
 “Select loading” is the lecture's terminology. Projection is a query-shaping approach rather than a fourth navigation-loading mechanism. The practical examples below stay with the eager loading actually demonstrated.
 
-### Eager loading: `Include`
+#### Eager loading: `Include`
 
 To load departments with their employees:
 
@@ -609,7 +640,7 @@ var query = context.Departments
 
 The query requests employees as part of loading departments. It executes when enumerated.
 
-### Two collections on the same entity
+#### Two collections on the same entity
 
 To load both collections belonging to `Department`:
 
@@ -621,7 +652,7 @@ var query = context.Departments
 
 Both `Include` calls start from the root entity, `Department`.
 
-### Nested related data: `ThenInclude`
+#### Nested related data: `ThenInclude`
 
 The active query in the supplied `Program.cs` is:
 
@@ -649,7 +680,7 @@ Use `Include` for another path from the root. Use `ThenInclude` to continue the 
 
 The query's root results are still departments. Including employees and attendance records does not turn the query into an employee or attendance query. [Microsoft: eager loading](https://learn.microsoft.com/en-us/ef/core/querying/related-data/eager)
 
-### What does the current program display?
+#### What does the current program display?
 
 It prints employee names followed by each department's name. Projects and attendance records are loaded by the query but are not printed by that loop.
 
@@ -659,7 +690,7 @@ It prints employee names followed by each department's name. Projects and attend
 
 ---
 
-## 13. EF6 vs. EF Core comparison
+### 13. EF6 vs. EF Core comparison
 
 This comparison covers the topics raised in my notes and this first video. It is not an exhaustive feature list.
 
@@ -684,7 +715,7 @@ Corrections in this table are explained and sourced in their corresponding secti
 
 ---
 
-## 14. Revision questions
+### 14. Revision questions
 
 | Question | Answer |
 | --- | --- |
@@ -704,7 +735,7 @@ Corrections in this table are explained and sourced in their corresponding secti
 | Does the active program print projects and attendance? | No; it loads them but prints employee and department names |
 | What remains for the second video? | The detailed loading tradeoffs and further techniques not demonstrated before the break |
 
-### Before running the supplied example
+#### Before running the supplied example
 
 1. Use an SDK compatible with the declared `net10.0` target and restore the declared packages.
 2. Check that the local SQL Server instance and authentication match `Context.cs`.
@@ -714,3 +745,691 @@ Corrections in this table are explained and sourced in their corresponding secti
 6. Run the console application and trace each `Include` path before looking at the output.
 
 The README records the inspected code and migrations. It does not assert that the local SQL Server database was connected to or modified during preparation.
+
+---
+
+## Video 2 — Loading, Tracking, and Model Features
+
+The first video built the model and introduced `Include`. The second asks what happens behind those calls: which SQL is sent, when it executes, which objects EF creates, and how model configuration affects queries.
+
+Examples labeled **From my code** preserve the supplied example. **Correction** explains a discrepancy without changing the source files. **Extra example** supplies a missing demonstration or completes an unfinished note; it is not presented as code copied from the lecture.
+
+### V2-1. Read the examples without mixing their roles
+
+Before choosing an EF method, ask what decision you are making:
+
+| Decision | Question | Relevant APIs |
+| --- | --- | --- |
+| Execution | When does the database work happen? | `ToList`, `First`, enumeration |
+| Loading | Which related data do I need? | `Include`, `ThenInclude`, `Load`, projection, lazy loading |
+| Query splitting | How should included collections be fetched? | `AsSingleQuery`, `AsSplitQuery` |
+| Tracking | Should the context track the returned entities? | `AsTracking`, `AsNoTracking` |
+| Identity resolution | Should repeated occurrences of a row share an object? | Tracking or `AsNoTrackingWithIdentityResolution` |
+| Filtering | Which rows should the query return? | `Where`, `HasQueryFilter` |
+| Mapping | Which properties belong to the EF model? | `Property`, shadow-property configuration |
+
+These decisions can work together. `AsSplitQuery` does not turn tracking off. `AsNoTracking` does not select which collections to load. A shadow property does not automatically create a query filter.
+
+#### A query definition is not its result
+
+```csharp
+// Extra example, based on the Department queries.
+var query = context.Departments.Where(d => d.ID < 4);
+
+// Execute and materialize the results now.
+var departments = query.ToList();
+```
+
+Think of the first line as a description of the work. The second asks EF to do that work and create a `List<Department>`. A `foreach` over the query would also execute it.
+
+In this lesson, **client** means the C# application and its memory; **server** means the database. It does not mean the end user's browser.
+
+### V2-2. Eager loading: single and split queries
+
+#### The problem introduced before the break
+
+```csharp
+// From my code: the eager-loading example is commented out in Program.cs.
+var query =
+    (context.Departments.AsSingleQuery()
+        .Include(d => d.Projects)
+        .Include(d => d.Employees)
+        .ThenInclude(e => e.Attendances)).ToList();
+```
+
+The requested paths are:
+
+```text
+Department -> Projects
+Department -> Employees -> Attendances
+```
+
+One LINQ query can return an object graph, while the SQL result is a flat set of rows. EF reconstructs that graph from the rows.
+
+#### Why can the SQL result become large?
+
+`Projects` and `Employees` are both collections belonging to the same department. Joining those sibling collections can repeat their combinations. The nested attendance path adds detail to the employee side.
+
+**Extra clarification — small example:** Suppose one department has 2 projects and 3 employees, and each employee has 2 attendance records. The employee/attendance path has 6 rows; combining it with 2 projects produces 12 joined rows for that department. Department and project data is repeated in those rows.
+
+> **Correction:** Do not multiply the total row counts of all four tables and assume that is always the returned count. Matching relationships determine the rows. Also, a database does not necessarily physically build the full Cartesian product before filtering a join. The useful concern here is repeated data from sibling collections. [Microsoft: single vs. split queries](https://learn.microsoft.com/en-us/ef/core/querying/single-split-queries)
+
+#### The intended alternative: `AsSplitQuery`
+
+```csharp
+// Correction example: the split-query alternative described in the notes.
+// The source example remains unchanged.
+var departments = context.Departments
+    .AsSplitQuery()
+    .Include(d => d.Projects)
+    .Include(d => d.Employees)
+    .ThenInclude(e => e.Attendances)
+    .ToList();
+```
+
+| Method | Role |
+| --- | --- |
+| `AsSingleQuery()` | Request a single SQL query for this loading operation |
+| `AsSplitQuery()` | Fetch included collections through multiple SQL queries |
+| `ToList()` | Execute the operation and collect its results |
+
+**Remember:** `ToList()` alone does not remove joins. Split queries can still contain joins; splitting is not a promise of join-free SQL.
+
+Split queries can reduce repeated data, but add database round trips and may observe changes between queries. Neither strategy is always faster. [Microsoft: split-query tradeoffs](https://learn.microsoft.com/en-us/ef/core/querying/single-split-queries#characteristics-of-split-queries)
+
+#### Seeing the work instead of guessing
+
+The transcript inspects logs using the configuration also present, commented out, in `Context.cs`:
+
+```csharp
+optionsBuilder.LogTo(log => Debug.WriteLine(log));
+```
+
+For that demonstration, logs appear in Visual Studio's Debug output. Execute the query before expecting its database commands to appear. The current project keeps logging disabled.
+
+### V2-3. Explicit loading
+
+#### The idea
+
+Load the department first. Later, deliberately ask EF to load a particular navigation for that department.
+
+```csharp
+// From my code: query_2 executes; the following loop is commented out.
+var query_2 = context.Departments.ToList();
+
+foreach (var dept in query_2)
+{
+    context.Entry(dept).Collection(c => c.Employees).Load();
+    context.Entry(dept).Reference(o => o.Branch).Load();
+}
+```
+
+Read the first loading call from left to right:
+
+```text
+Entry(dept)              -> Get EF's entry for this department
+Collection(...Employees) -> Select its collection navigation
+Load()                  -> Fetch the related employees now
+```
+
+Use `Collection` for many related entities and `Reference` for one related entity. The calls above rely on the normal tracking behavior of the example. [Microsoft: explicit loading](https://learn.microsoft.com/en-us/ef/core/querying/related-data/explicit)
+
+#### Adding a condition
+
+**From my code:**
+
+```csharp
+var emps = context.Entry(dept)
+    .Collection(c => c.Employees)
+    .Query()
+    .Where(e => e.ID < 10);
+```
+
+`Query()` gives a related query to compose; `Where` adds a condition. This line alone does not execute it.
+
+**Correction example — executing that filtered query:**
+
+```csharp
+var emps = context.Entry(dept)
+    .Collection(c => c.Employees)
+    .Query()
+    .Where(e => e.ID < 10)
+    .ToList();
+
+foreach (var emp in emps)
+{
+    Console.WriteLine(emp.Name);
+}
+```
+
+In the original loop, `Load()` already loads all visible employees before the filtered query is defined. Defining that query does not remove employees from `dept.Employees`. Use the filtered result when the goal is to print only its matches.
+
+#### What is the cost?
+
+Loading employees separately for every department can produce one initial query plus one employee query per department: the familiar **N+1 pattern**. Loading each branch can add more calls. Explicit loading gives control over timing; it is not automatically a performance improvement.
+
+### V2-4. Select loading: projection
+
+The instructor leaves this topic as an exercise. In these notes, “Select loading” means **projection**: choose the shape of the result using `Select`.
+
+#### The idea
+
+If a screen needs department names and employee names, ask for those values instead of loading every property of every entity.
+
+```csharp
+// Extra example: completes the unfinished Select Loading note.
+var summaries = context.Departments
+    .Select(d => new
+    {
+        DepartmentName = d.Name,
+        EmployeeNames = d.Employees
+            .Select(e => e.Name)
+            .ToList()
+    })
+    .ToList();
+```
+
+`new { ... }` describes the result shape. This query returns summaries, not complete `Department` entities. The navigation inside the query expression lets EF build the related query; it is not an attempt to iterate an unloaded collection in application memory.
+
+`Include` requests related entities. Projection requests the selected result shape, so this example does not need an `Include` to retrieve employee names.
+
+**Extra clarification:** A projection containing only scalar values has no entity instances to track. A projection that contains an actual entity can still track that entity. “Every `Select` disables tracking” is incorrect. [Microsoft: tracking and custom projections](https://learn.microsoft.com/en-us/ef/core/querying/tracking#tracking-and-custom-projections)
+
+### V2-5. Lazy loading
+
+#### The idea
+
+With lazy loading configured, accessing an unloaded navigation can trigger a database query at that moment.
+
+```text
+Load Department
+      |
+      v
+Access department.Employees
+      |
+      v
+Lazy-loading mechanism fetches employees if needed
+```
+
+This saves an explicit loading call in the application code, but the query still happens. A loop or UI control can cause unexpected repeated database access.
+
+#### Proxy setup shown in the lecture
+
+The supplied project now references:
+
+```xml
+<PackageReference Include="Microsoft.EntityFrameworkCore.Proxies" Version="10.0.12" />
+```
+
+The configuration line is present but commented out:
+
+```csharp
+optionsBuilder.UseLazyLoadingProxies(true);
+```
+
+Navigation properties were changed to `virtual`, for example:
+
+```csharp
+public virtual Department Department { get; set; }
+public virtual ICollection<Attendance> Attendances { get; set; }
+```
+
+> **Extra clarification:** Proxies need entity classes they can inherit from and accessible constructors, as well as overridable navigations. The supplied entities are `internal`; they are not the usual public entity setup shown for proxy loading. Package installation and `virtual` alone do not make this project ready for proxies. No source declarations were changed for this explanation. [Microsoft: lazy-loading proxies](https://learn.microsoft.com/en-us/ef/core/querying/related-data/lazy)
+
+The lecture also mentions a more selective approach involving a design pattern but does not implement it. Keep that mention as a future topic, rather than treating “Factory pattern” as the name of a demonstrated per-query EF switch.
+
+**Remember:** These options apply to the configured context. Calling `UseLazyLoadingProxies` in this context does not configure every unrelated context in the entire application.
+
+### V2-6. Client evaluation and server evaluation
+
+#### The problem
+
+A C# method inside a LINQ query is not necessarily something the database provider knows how to translate into SQL.
+
+| Evaluation | Where work happens |
+| --- | --- |
+| Server evaluation | Database executes the translated SQL |
+| Client evaluation | C# application processes values in memory |
+
+EF tries to translate the query. If an expression is unsupported in the final, top-level projection, EF can fetch its inputs and finish that projection in C#. An unsupported expression in a server-side filter generally causes a translation exception when executed. [Microsoft: client vs. server evaluation](https://learn.microsoft.com/en-us/ef/core/querying/client-eval)
+
+#### The lecture's projection example
+
+```csharp
+// From my code: query_3 is commented out.
+var query_3 =
+    (from d in context.Departments
+     select string.Join(':', "Dept", d.Name)).ToList();
+```
+
+In the lecture's version and overload, the mentor observes SQL selecting the name, followed by string formatting in application memory. A name such as `IT` becomes `Dept:IT`.
+
+> **Version note:** Translation depends on the provider, EF version, and exact overload. Modern SQL Server providers translate some `string.Join` forms. Do not memorize “`string.Join` can never run on the server.” Check the mapping and generated SQL for the form being used. [Microsoft: SQL Server function mappings](https://learn.microsoft.com/en-us/ef/core/providers/sql-server/functions)
+
+#### A clearer example of the rule
+
+```csharp
+// Extra example: our own helper, with no configured SQL translation.
+static string DisplayName(string name) => $"Dept:{name}";
+
+var labels = context.Departments
+    .Select(d => DisplayName(d.Name))
+    .ToList();
+```
+
+The final projection can run the helper after fetching the required values. Putting the same helper in `Where` changes the problem:
+
+```csharp
+// Extra example: normally fails translation when executed.
+var departments = context.Departments
+    .Where(d => DisplayName(d.Name) == "Dept:IT")
+    .ToList();
+```
+
+The database would need to evaluate an unknown method to decide which rows match. Moving `ToList` before `Where` would move filtering into application memory, but also fetch data before that filter. It is a different decision with a different cost, not a free fix.
+
+### V2-7. Using EF.Functions
+
+The two examples in `Program.cs` search for names containing `d`:
+
+```csharp
+// From my code.
+var query_4 =
+    from d in context.Departments
+    where d.Name.Contains("d")
+    select d;
+
+var query_5 =
+    from d in context.Departments
+    where EF.Functions.Like(d.Name, "%d%")
+    select d;
+```
+
+`Contains` expresses a C# string operation that the provider can translate. `EF.Functions.Like` explicitly requests SQL pattern matching.
+
+| SQL pattern | Meaning |
+| --- | --- |
+| `%d%` | Contains `d` |
+| `d%` | Starts with `d` |
+| `%d` | Ends with `d` |
+
+**Extra clarification:** `Contains` treats its input as substring text, while `Like` treats `%` and `_` as pattern characters. Their behavior is not interchangeable for every input. Case matching depends on database collation, and the exact generated SQL depends on the provider/version. [Microsoft: SQL Server function mappings](https://learn.microsoft.com/en-us/ef/core/providers/sql-server/functions)
+
+Both supplied queries are definitions only until executed. `EF.Functions.Like` is intended for a translated database query, not as a replacement for an ordinary in-memory string comparison.
+
+### V2-8. Tracking and identity resolution
+
+#### First: what is tracking for?
+
+The `ChangeTracker` keeps information about entities associated with the context so that changes can be detected and saved. The lecture changes the default query behavior through the context constructor:
+
+```csharp
+// From the notes; this assignment is commented out in Context.cs.
+public Context()
+{
+    ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.NoTracking;
+}
+```
+
+This changes the default for queries using that context. It does not make the objects immutable or prohibit later attaching them.
+
+#### Why can the same department become multiple objects?
+
+The lecture uses employees from the same department:
+
+```csharp
+// From my example: the AsNoTracking alternative.
+var employees = context.Employees
+    .AsNoTracking()
+    .Include(e => e.Department)
+    .ToList();
+```
+
+Suppose Employee 1 and Employee 2 both have `DepartmentID = 1`. The included department values describe the same database row. With plain no-tracking, repeated occurrences can become separate C# objects:
+
+```text
+Employee 1 -> Department object A, ID = 1
+Employee 2 -> Department object B, ID = 1
+```
+
+They can have identical values without being the same reference.
+
+The second option in the source is:
+
+```csharp
+var query_6 = context.Employees
+    .AsNoTrackingWithIdentityResolution()
+    .Include(e => e.Department);
+```
+
+Identity resolution reuses the object for repeated occurrences of an entity key within the query results:
+
+```text
+Employee 1 --+
+            +--> One Department object, ID = 1
+Employee 2 --+
+```
+
+#### Compare the choices
+
+| Choice | Context tracks returned entities | Identity resolution |
+| --- | --- | --- |
+| Default tracking / `AsTracking()` | Yes | Through the context |
+| `AsNoTracking()` | No | No |
+| `AsNoTrackingWithIdentityResolution()` | No | Within that query's materialization |
+
+The third option uses a temporary tracker for identity resolution, not the context's persistent tracker. Editing its results is not automatically saved by that context. [Microsoft: tracking and identity resolution](https://learn.microsoft.com/en-us/ef/core/querying/tracking)
+
+**Correction:** The identity check is not a search through every object in application memory, and it does not imply an extra SQL lookup for each employee. It operates while EF creates the query's results. Reusing objects can reduce duplicates, but resolution itself has a cost; the total speed and memory benefit depends on the result shape. [Microsoft: identity resolution](https://learn.microsoft.com/en-us/ef/core/change-tracking/identity-resolution)
+
+#### What if the default is NoTracking but I need to edit?
+
+**Extra example:** Request tracking for that query:
+
+```csharp
+var employee = context.Employees
+    .AsTracking()
+    .First(e => e.ID == 1);
+```
+
+The lecture also mentions attaching a detached entity or changing its state. Those are separate editing steps. Do not equate “no tracking” with “this database row can never be updated.”
+
+### V2-9. Global query filters
+
+#### Start with soft delete
+
+Hard delete removes the database row. Soft delete leaves it there and marks it, for example with `Deleted = true`.
+
+From `Employee.cs`:
+
+```csharp
+public bool Deleted { get; set; }
+```
+
+Without a shared filter, each employee query needs to remember to exclude deleted employees. Forgetting the condition can produce a logical error even though the SQL runs successfully.
+
+#### Configure the condition once
+
+From `Context.cs`:
+
+```csharp
+modelBuilder.Entity<Employee>()
+    .HasQueryFilter(e => !e.Deleted);
+```
+
+From `Program.cs`:
+
+```csharp
+var query_7 =
+    from e in context.Employees
+    where e.ID > 10
+    select e;
+```
+
+Think of the effective condition as:
+
+```text
+Employee.ID > 10 AND Employee.Deleted = false
+```
+
+The second condition comes from the model configuration. It also applies when employees are queried through related-data loading. [Microsoft: global query filters](https://learn.microsoft.com/en-us/ef/core/querying/filters)
+
+> **Remember:** “Global” applies to queries for the configured entity type. This code filters `Employee`, not every entity in the context. It does not turn `Remove` into soft delete; marking a row as deleted still requires an update of the flag.
+
+**Extra example — intentionally including deleted employees:**
+
+```csharp
+var deletedEmployees = context.Employees
+    .IgnoreQueryFilters()
+    .Where(e => e.Deleted)
+    .ToList();
+```
+
+If you simply add `Where(e => e.Deleted)` while the non-deleted global filter remains enabled, the two conditions conflict. Disabling filters is a deliberate exception to the default query behavior. [Microsoft: disabling query filters](https://learn.microsoft.com/en-us/ef/core/querying/filters#disabling-filters)
+
+### V2-10. Shadow properties
+
+#### Three different places to keep in mind
+
+| Place | What it describes |
+| --- | --- |
+| C# entity class | Members directly accessible on an object |
+| EF model | Properties and mappings known to EF |
+| Database schema | Tables, columns, and constraints after schema changes are applied |
+
+A shadow property belongs to the EF model without a corresponding property in the C# entity class. For this relational example, it is mapped to a database column when the schema is updated.
+
+#### Configure it
+
+From `Context.cs`:
+
+```csharp
+modelBuilder.Entity<Department>()
+    .Property<bool>("Deleted")
+    .IsRequired(true)
+    .HasDefaultValue(false);
+```
+
+`Department` has no `Deleted` member, so EF defines a shadow property with that name. `bool` is its type, required means the mapped value is not nullable, and the database default is `false`.
+
+**Question: should Deleted always be hidden from the class?** No. The mentor uses shadow properties to keep persistence metadata out of the class. It is a design choice, not a rule that `Deleted` is always a bad entity member. This same project intentionally keeps `Employee.Deleted` as a normal CLR property.
+
+#### Access a tracked value
+
+The source contains this commented example:
+
+```csharp
+var dept = context.Departments.First();
+context.Entry(dept).Property("Deleted").CurrentValue = true;
+context.SaveChanges();
+```
+
+The query returns a department under the current default tracking behavior. `Entry(...).Property(...)` accesses its tracked shadow value. `SaveChanges` saves that data change; it does not create the `Deleted` column.
+
+#### Use it in a database query
+
+From `Program.cs`:
+
+```csharp
+var query_8 =
+    from d in context.Departments
+    where EF.Property<bool>(d, "Deleted") == true
+    select d;
+```
+
+Inside the query expression, `EF.Property` identifies the mapped property by name. It is not a normal runtime getter for arbitrary C# objects.
+
+**Extra clarification:** A no-tracking result does not retain shadow values in the context's tracker for later access. You can still filter or project a shadow property in the SQL query before materialization. [Microsoft: shadow properties](https://learn.microsoft.com/en-us/ef/core/modeling/shadow-properties)
+
+#### Extra example: combine a shadow property and a filter
+
+```csharp
+// Not currently configured for Department in the source.
+modelBuilder.Entity<Department>()
+    .HasQueryFilter(d => !EF.Property<bool>(d, "Deleted"));
+```
+
+Defining the shadow property and defining the filter are two separate actions. In the current source, `query_8` can ask for deleted departments because there is no global non-deleted filter on `Department`.
+
+### V2-11. Applying properties to all entities
+
+The lecture avoids repeating the same configuration for every entity. From `Context.cs`:
+
+```csharp
+foreach (var item in modelBuilder.Model.GetEntityTypes())
+{
+    modelBuilder.Entity(item.ClrType)
+        .Property<bool>("Deleted")
+        .IsRequired(true)
+        .HasDefaultValue(false);
+
+    modelBuilder.Entity(item.ClrType)
+        .Property<DateTime>("CreatedDate")
+        .IsRequired(true)
+        .HasDefaultValueSql("GETDATE()");
+}
+```
+
+The loop visits entity metadata currently present in this EF model. It is not a loop through every C# class in the project.
+
+#### Question: why `item.ClrType` instead of `item.Name`?
+
+`item.ClrType` is the actual C# `Type`, such as `typeof(Department)`. It selects the entity using the `Entity(Type)` overload, matching the ordinary CLR entities in this project.
+
+`item.Name` is a metadata name string. It is not automatically the table name. The instructor demonstrates a string-based overload, but using a `Type` expresses directly which CLR entity this code is configuring. They are different API choices, not different spellings of the same value.
+
+#### Question: what does `HasDefaultValueSql("GETDATE()")` do?
+
+| Configuration | Database default |
+| --- | --- |
+| `HasDefaultValue(false)` | A constant value |
+| `HasDefaultValueSql("GETDATE()")` | A SQL expression evaluated by SQL Server |
+
+For an insert that uses this default, SQL Server supplies its current date/time. This is not the time `OnModelCreating` ran, and it does not automatically refresh on every update. Configuring the default must be followed by an appropriate schema update before it exists in the database. [Microsoft: generated properties and defaults](https://learn.microsoft.com/en-us/ef/core/modeling/generated-properties)
+
+#### What is actually shadow in this project?
+
+| Entity | `Deleted` | `CreatedDate` |
+| --- | --- | --- |
+| `Employee` | Existing CLR property configured by the loop | Shadow property |
+| `Department` | Shadow property | Shadow property |
+| `Branch`, `Project`, `Attendance` | Shadow property | Shadow property |
+
+If a property with that name already exists, `Property<bool>("Deleted")` configures it instead of creating a second property. The separate Department configuration before the loop repeats the same compatible settings. The loop adds property configuration, not filters for all entities. [Microsoft: shadow-property configuration](https://learn.microsoft.com/en-us/ef/core/modeling/shadow-properties)
+
+**Question: why call `base.OnModelCreating(modelBuilder)`?** The mentor recalls inheritance: call the base implementation when extending its behavior. **Extra clarification:** The direct `DbContext` implementation does not add custom model rules of its own here; a custom base context may. Keep the project's call, but do not assume that this line creates its tables.
+
+### V2-12. Recursive relationships and relationship fixup
+
+The lecture ends with a research exercise: an employee manages employees, who may manage other employees. This relationship is not implemented in the supplied `Employee.cs`.
+
+#### Extra example: describe one level of the relationship
+
+```csharp
+// Illustrative additions, not changes made to the source.
+public int? ManagerID { get; set; }
+public Employee? Manager { get; set; }
+public ICollection<Employee> ManagedEmployees { get; set; }
+    = new List<Employee>();
+```
+
+The relationship points back to the same entity type:
+
+```text
+Employee 1
+  ├── Employee 2
+  |     └── Employee 3
+  └── Employee 4
+```
+
+An employee has one manager reference and potentially many managed employees. A nullable manager key allows a top-level employee with no manager.
+
+**Extra example — explicit mapping:**
+
+```csharp
+modelBuilder.Entity<Employee>()
+    .HasOne(e => e.Manager)
+    .WithMany(e => e.ManagedEmployees)
+    .HasForeignKey(e => e.ManagerID)
+    .OnDelete(DeleteBehavior.Restrict);
+```
+
+`Restrict` is an illustrative choice to avoid cascading deletion down this management relationship; it is not a configuration from the video.
+
+#### What relationship fixup does
+
+When related entities are available to the context, EF aligns their navigation references with their FK values. If Employee 2 has `ManagerID = 1` and both employees are loaded and tracked, EF can connect Employee 2 to Employee 1 and populate the corresponding collection. [Microsoft: relationship fixup](https://learn.microsoft.com/en-us/ef/core/change-tracking/relationship-changes)
+
+**Correction:** Fixup connects available objects. It does not send queries to discover every descendant. Repeated `ThenInclude` follows a specified depth; it is not unlimited recursion.
+
+**Extra clarification — conceptual approach:** Loading a suitable set of employees in one tracking query can let fixup connect the loaded manager/employee references. It builds only the graph represented by those results. Employees excluded by a filter or absent from the result do not appear by magic.
+
+| Query behavior | Connection to this exercise |
+| --- | --- |
+| Tracking | Context can reuse and connect loaded entities across queries |
+| Plain no-tracking | No context-level fixup across independently loaded results |
+| No-tracking with identity resolution | Reuses identities within one result; does not load missing descendants or keep results tracked |
+
+The last option supports identity consistency, not automatic recursive loading. This is why the mentor asks to study fixup together with the tracking choices. [Microsoft: identity resolution](https://learn.microsoft.com/en-us/ef/core/change-tracking/identity-resolution)
+
+### V2-13. What is currently active in my project?
+
+The code preserves the successive lecture experiments. It is not one complete demonstration that executes all of them together.
+
+| Example or setting | Current source state |
+| --- | --- |
+| Initial query expression | Commented out |
+| Eager-loading query with `AsSingleQuery` | Commented out |
+| `query_2 = context.Departments.ToList()` | Executes if earlier context/schema work succeeds |
+| Explicit-loading loop | Commented out |
+| `query_3`, client/server example | Commented out |
+| `query_4` and `query_5`, string queries | Defined but not executed |
+| `query_6`, identity-resolution query | Defined but not executed |
+| `query_7`, employee query | Defined but not executed |
+| `query_8`, department shadow-property query | Defined but not executed |
+| Department shadow-value update and `SaveChanges` | Commented out |
+| Logging | Commented out |
+| Lazy-loading proxy configuration | Commented out; package and virtual navigations present |
+| Constructor's default NoTracking setting | Commented out; ordinary entity queries keep default tracking |
+| Employee global query filter | Configured |
+| Deleted / CreatedDate property configuration | Configured in the EF model |
+| Recursive manager relationship | Research exercise; absent from the source |
+
+The supplied migration files still contain the four Video 1 migrations. They do not contain the new `Deleted` and `CreatedDate` configuration. Therefore, the source model and checked-in migration baseline do not yet match for those features. This describes the files; it does not assert what columns exist in the local database.
+
+For a future experiment, model/schema changes such as new columns need a reviewed migration and application to the database. Loading choices, query filters, and tracking options do not by themselves create columns. No database changes were performed while writing these notes.
+
+### V2-14. Revision questions and decisions
+
+#### Explain the flow before memorizing the method
+
+```text
+Describe the query and requested result
+              |
+              v
+Execute: ToList / First / enumeration
+              |
+              v
+Provider translates the supported work into SQL
+              |
+              v
+Database returns matching rows
+              |
+              v
+EF creates the result objects and applies the chosen
+tracking / identity-resolution behavior
+```
+
+| Question | Short answer |
+| --- | --- |
+| Does `ToList` fix multiple-collection joins? | No; it executes the chosen query strategy |
+| Does `AsSplitQuery` mean no joins anywhere? | No; it splits collection loading |
+| Are split queries always faster? | No; weigh repeated data against round trips |
+| Does `Query().Where(...)` execute immediately? | No; execute or enumerate the query |
+| Can a filtered query remove objects already loaded into a navigation? | No; use its own filtered result |
+| Does projection need full entities? | No; select the values required |
+| Does `virtual` enable lazy loading on its own? | No; the loading mechanism must be configured |
+| Does no-tracking mean an immutable object? | No; it means no automatic context tracking of that result |
+| Is identity resolution shared across all application memory? | No; its scope depends on the tracking choice |
+| Does a query filter delete rows? | No; it changes which rows ordinary queries return |
+| Does adding Deleted add a filter automatically? | No; configure the filter separately |
+| Is Employee.Deleted shadow in this project? | No; it already exists in the C# class |
+| Does `SaveChanges` create a shadow property's column? | No; schema changes are handled separately |
+| Does GETDATE run whenever I read the entity? | No; it is the configured SQL default for insertion |
+| Does relationship fixup load missing employees? | No; it connects available entities |
+
+#### Choose based on the operation
+
+| Need | Starting choice to consider |
+| --- | --- |
+| Related entities are definitely required | Eager loading |
+| One navigation is needed only at a later decision point | Explicit loading |
+| A display needs selected values | Projection |
+| Navigation access should fetch data on demand | Lazy loading, after assessing hidden query costs |
+| Results will be edited and saved through this context | Tracking |
+| Read-only use with little repeated entity data | Plain no-tracking |
+| Read-only graph with repeated entity identities | No-tracking with identity resolution; assess its cost |
+| Exclude soft-deleted rows consistently | Global query filter |
+| Map metadata without a CLR property | Shadow property |
+
+These are starting points, not rules that one method always wins. Follow the mentor's central habit: explain what the operation needs and what EF will do before choosing the API.
